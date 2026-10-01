@@ -111,8 +111,11 @@ export async function rateLimit(
   limit: number,
   windowMs: number
 ): Promise<RateLimitResult> {
-  const shared = await sharedRateLimit(key, limit, windowMs);
-  return shared ?? memoryRateLimit(key, limit, windowMs);
+  // El limite se ajusta aqui y no en cada llamada, para que el margen de una
+  // peticion sin IP sea el mismo en Redis y en el respaldo en memoria.
+  const efectivo = limiteEfectivo(key, limit);
+  const shared = await sharedRateLimit(key, efectivo, windowMs);
+  return shared ?? memoryRateLimit(key, efectivo, windowMs);
 }
 
 export async function clearRateLimit(
@@ -124,17 +127,118 @@ export async function clearRateLimit(
   if (!redisConfigured()) return;
 
   try {
-    await getLimiter(limit, windowMs).resetUsedTokens(key);
+    await getLimiter(limiteEfectivo(key, limit), windowMs).resetUsedTokens(key);
   } catch {
     // Sin Redis no se puede limpiar el contador compartido; no es critico.
   }
 }
 
-export function getClientIp(headers: Headers): string {
-  const forwarded = headers.get("x-forwarded-for");
-  if (forwarded) {
-    const first = forwarded.split(",")[0]?.trim();
-    if (first) return first;
+/**
+ * Clave compartida de las peticiones sin IP, y factor que multiplica su limite.
+ * Se reconoce delimitada por ":" para que ningun otro texto de una clave
+ * active por error el margen mas alto.
+ */
+const SIN_IP = "sin-ip";
+const LIMITE_SIN_IP_MULTIPLICADOR = 10;
+const CLAVE_SIN_IP = new RegExp(`(^|:)${SIN_IP}($|:)`);
+
+/**
+ * Limite que corresponde a una clave: el de la peticion sin IP es mas alto,
+ * para que un visitante al que no se le puede atribuir una IP no se bloquee
+ * solo por el trafico de otras personas.
+ */
+export function limiteEfectivo(key: string, limit: number): number {
+  return CLAVE_SIN_IP.test(key) ? limit * LIMITE_SIN_IP_MULTIPLICADOR : limit;
+}
+
+/** IPv4 con cuatro octetos validos y sin ceros a la izquierda. */
+function esIpv4(valor: string): boolean {
+  const partes = valor.split(".");
+  if (partes.length !== 4) return false;
+  return partes.every((parte) => {
+    if (!/^\d{1,3}$/.test(parte)) return false;
+    const numero = Number(parte);
+    return numero >= 0 && numero <= 255 && String(numero) === parte;
+  });
+}
+
+/** IPv6, con o sin compresion "::". */
+function esIpv6(valor: string): boolean {
+  if (valor.indexOf("::") !== valor.lastIndexOf("::")) return false;
+  const grupos = (texto: string) => (texto === "" ? [] : texto.split(":"));
+
+  if (!valor.includes("::")) {
+    const partes = grupos(valor);
+    return partes.length === 8 && partes.every((g) => /^[0-9a-f]{1,4}$/i.test(g));
   }
-  return headers.get("x-real-ip") ?? "unknown";
+
+  const [izquierda, derecha] = valor.split("::");
+  const partes = [...grupos(izquierda), ...grupos(derecha)];
+  if (!partes.every((g) => /^[0-9a-f]{1,4}$/i.test(g))) return false;
+  return partes.length <= 7;
+}
+
+/**
+ * Normaliza la IP a una forma canonica.
+ *
+ * Una IPv4 mapeada dentro de IPv6 (::ffff:1.2.3.4, forma que emite el socket de
+ * Node cuando la conexion llega por IPv4) se devuelve como IPv4. Asi el mismo
+ * visitante no acaba con dos contadores distintos segun como lo reporte el
+ * proxy. Devuelve null si el valor no es una IP.
+ */
+function normalizarIp(valor: string): string | null {
+  const ip = valor.trim();
+  if (!ip) return null;
+
+  const mapeada = ip.match(/^(?:::ffff:|0:0:0:0:0:ffff:)(\d{1,3}(?:\.\d{1,3}){3})$/i);
+  if (mapeada) return esIpv4(mapeada[1]) ? mapeada[1] : null;
+
+  if (ip.includes(".")) return esIpv4(ip) ? ip : null;
+  if (!ip.includes(":")) return null;
+  return esIpv6(ip) ? ip.toLowerCase() : null;
+}
+
+/** Ultima IP valida de una cabecera, leida de derecha a izquierda. */
+function ipDesdeCabecera(bruto: string | null): string | null {
+  if (!bruto) return null;
+  for (const parte of bruto.split(",").reverse()) {
+    const ip = normalizarIp(parte);
+    if (ip) return ip;
+  }
+  return null;
+}
+
+let avisoSinIp = false;
+
+/**
+ * IP del cliente para el limitador de peticiones.
+ *
+ * Prioridad de cabeceras:
+ *  1. x-vercel-forwarded-for: la emite la plataforma y no se sobrescribe
+ *     aunque haya un proxy delante de Vercel.
+ *  2. x-real-ip: tambien la calcula la plataforma.
+ *  3. x-forwarded-for: se usa el ultimo valor valido, nunca el primero, que
+ *     es el que puede falsear el cliente.
+ *
+ * Sin IP valida se devuelve una clave compartida (no una por peticion, que
+ * haria el limite evadible de un modo trivial) y se avisa una vez por proceso.
+ * Esa clave lleva un limite mas alto, para que un visitante sin IP no se
+ * bloquee solo aunque haya trafico de otras personas.
+ */
+export function getClientIp(headers: Headers): string {
+  for (const nombre of ["x-vercel-forwarded-for", "x-real-ip"]) {
+    const ip = ipDesdeCabecera(headers.get(nombre));
+    if (ip) return ip;
+  }
+
+  const deProxy = ipDesdeCabecera(headers.get("x-forwarded-for"));
+  if (deProxy) return deProxy;
+
+  if (!avisoSinIp) {
+    avisoSinIp = true;
+    console.warn(
+      "[rate-limit] AVISO: peticion sin IP de cliente detectable. Todas las peticiones sin IP comparten un contador con limite mas alto; revise que el proxy de Vercel este reenviando x-real-ip o x-vercel-forwarded-for."
+    );
+  }
+  return SIN_IP;
 }
