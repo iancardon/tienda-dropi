@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // `url` la usa la app en tiempo de ejecucion: apunta al pooler de Supabase
+  // en modo transaccion (puerto 6543 con ?pgbouncer=true).
+  url = env("DATABASE_URL")
+  // `directUrl` la usan las migraciones y Prisma Studio: una conexion directa
+  // o de sesion, porque el pooler en modo transaccion no sirve para DDL.
+  directUrl = env("DIRECT_URL")
+}
+
+// ===== Productos =====
+
+model Product {
+  id                String           @id @default(cuid())
+  name              String
+  slug              String           @unique
+  shortDescription  String?          // descripción corta para tarjetas/listados
+  description       String           // descripción completa
+  category          String
+  basePrice         Float            // precio de venta al público (COP)
+  originalPrice     Float?           // precio anterior (tachado)
+  discountPercent   Int?             // % de descuento calculado o manual
+  supplierPrice     Float            // costo del proveedor (no se muestra al cliente)
+  supplierShippingCost Float @default(0) // lo que el proveedor cobra por enviar al cliente
+  supplier          String           @default("Dropi") // nombre del proveedor
+  supplierProductId String?          // ID del producto en el proveedor (Dropi)
+  images            Json             // array de URLs
+  featured          Boolean          @default(false) // producto destacado
+  active            Boolean          @default(true)
+  isDemo            Boolean          @default(false) // solo para pruebas, nunca publicar
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  variants          ProductVariant[]
+
+  @@map("products")
+}
+
+model ProductVariant {
+  id            String    @id @default(cuid())
+  productId     String
+  product       Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name          String    // ej. "Negro", "12V"
+  sku           String    @unique
+  priceOverride Float?    // si la variante cambia el precio base
+  stock         Int       @default(0) // cantidad numérica
+  stockStatus   String    @default("disponible") // disponible | agotado | bajo_stock
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  orderItems    OrderItem[]
+  cartItems     CartItem[]
+
+  @@index([productId])
+  @@map("product_variants")
+}
+
+// ===== Carrito =====
+
+model Cart {
+  id        String     @id @default(cuid())
+  sessionId String     @unique
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("carts")
+}
+
+model CartItem {
+  id               String           @id @default(cuid())
+  cartId           String
+  cart             Cart             @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productVariantId String
+  productVariant   ProductVariant   @relation(fields: [productVariantId], references: [id])
+  quantity         Int
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@unique([cartId, productVariantId])
+  @@index([cartId])
+  @@index([productVariantId])
+  @@map("cart_items")
+}
+
+// ===== Órdenes =====
+
+model Order {
+  id                 String      @id @default(cuid())
+  customerName       String
+  customerPhone      String
+  customerEmail      String?
+  customerAddress    String
+  customerNeighborhood String?    // barrio
+  customerCity       String
+  customerDepartment String
+  customerReference  String?      // referencia adicional
+  status             String      @default("pendiente") // pendiente | confirmado | preparando | enviado | entregado | rechazado | cancelado
+  isDemo             Boolean     @default(false) // pedido de prueba: se puede limpiar sin tocar los reales
+  total              Float
+  shippingCost       Float        @default(0)
+  subtotal           Float
+  dropiOrderId       String?      // se llena manualmente desde el admin
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  items              OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id               String          @id @default(cuid())
+  orderId          String
+  order            Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productVariantId String
+  productVariant   ProductVariant  @relation(fields: [productVariantId], references: [id])
+  quantity         Int
+  unitPrice        Float
+  unitCost         Float?         // costo del proveedor congelado al vender (margen real)
+  createdAt        DateTime        @default(now())
+
+  @@index([orderId])
+  @@index([productVariantId])
+  @@map("order_items")
+}
