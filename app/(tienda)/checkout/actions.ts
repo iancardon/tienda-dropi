@@ -1,9 +1,11 @@
 "use server";
 
+import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { DEPARTMENTS } from "@/lib/colombia";
 import { prisma } from "@/lib/prisma";
+import { notifyNewOrder } from "@/lib/order-email";
 import { variantPrice } from "@/lib/products";
 import { getClientIp, rateLimit } from "@/lib/rate-limit";
 import { STORE_CONFIG } from "@/lib/store";
@@ -124,7 +126,7 @@ export async function submitOrder(
 
   for (const item of items) {
     const variant = variantMap.get(item.productVariantId);
-    if (!variant || !variant.product.active) {
+    if (!variant || !variant.product.active || variant.product.isDemo) {
       return { error: "Uno de los productos ya no está disponible." };
     }
     if (variant.stock <= 0 || variant.stockStatus === "agotado") {
@@ -189,6 +191,30 @@ export async function submitOrder(
     }
 
     return created;
+  });
+
+  // Aviso por correo al dueño. Va DESPUÉS de la transacción, así que el pedido
+  // ya está guardado y es real cuando se avisa. `after()` mantiene el aviso
+  // vivo aunque Vercel corte la respuesta al navegador; y como notifyNewOrder
+  // nunca lanza, un correo fallido no cambia el resultado del pedido.
+  after(async () => {
+    // Se reconstruyen los nombres desde variantMap, que ya está en memoria: los
+    // items guardados solo llevan el precio, no el texto del producto.
+    await notifyNewOrder({
+      ...order,
+      items: orderItems.map((item) => {
+        const variant = variantMap.get(item.productVariantId)!;
+        return {
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          productVariant: {
+            name: variant.name,
+            sku: variant.sku,
+            product: { name: variant.product.name },
+          },
+        };
+      }),
+    });
   });
 
   redirect(`/pedido/${order.id}`);

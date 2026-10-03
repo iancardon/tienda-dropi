@@ -34,15 +34,26 @@ const securityHeaders = [
     : []),
 ];
 
+// Hosts desde los que next/image puede descargar y optimizar.
+//
+// Los de ejemplo (Unsplash, Picsum) vienen de serie porque son los que usan los
+// productos de prueba. Cuando se carguen fotos reales de Dropi o de cualquier
+// otro proveedor, se añaden sus dominios en la variable IMAGE_HOSTS separada por
+// comas, en VERCEL, y se vuelve a desplegar. No hace falta tocar este código.
+const extraImageHosts = (process.env.IMAGE_HOSTS ?? "")
+  .split(",")
+  .map((host) => host.trim())
+  .filter((host) => host.length > 0);
+
+const imageRemotePatterns: NonNullable<NextConfig["images"]>["remotePatterns"] = [
+  { protocol: "https", hostname: "images.unsplash.com" },
+  { protocol: "https", hostname: "picsum.photos" },
+  ...extraImageHosts.map((hostname) => ({ protocol: "https" as const, hostname })),
+];
+
 const nextConfig: NextConfig = {
   images: {
-    // Hosts desde los que next/image puede descargar y optimizar.
-    // Si el catálogo real de Dropi sirve fotos desde otro dominio, hay que
-    // añadirlo aquí o las imágenes aparecerán rotas.
-    remotePatterns: [
-      { protocol: "https", hostname: "images.unsplash.com" },
-      { protocol: "https", hostname: "picsum.photos" },
-    ],
+    remotePatterns: imageRemotePatterns,
   },
   // Las páginas legales se renombraron; estas rutas antigas siguen funcionando.
   async redirects() {

@@ -22,7 +22,7 @@ import {
   purgeDemoOrders,
   setOrderDemo,
   setOrderStatus,
-  updateDropiOrderId,
+  updateProviderOrder,
 } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -265,12 +265,28 @@ export default async function AdminPedidoDetallePage({
                 }
               />
               <Field
+                label="Proveedor"
+                value={
+                  order.providerName ?? (
+                    <span className="text-zinc-400">Sin asignar</span>
+                  )
+                }
+              />
+              <Field
                 label="ID pedido en el proveedor"
                 value={
-                  order.dropiOrderId ? (
-                    <span className="font-mono">{order.dropiOrderId}</span>
+                  order.providerOrderId ? (
+                    <span className="font-mono">{order.providerOrderId}</span>
                   ) : (
                     <span className="text-zinc-400">Sin asignar</span>
+                  )
+                }
+              />
+              <Field
+                label="Estado en el proveedor"
+                value={
+                  order.providerStatus ?? (
+                    <span className="text-zinc-400">Sin reportar</span>
                   )
                 }
               />
@@ -362,17 +378,32 @@ export default async function AdminPedidoDetallePage({
           </section>
 
           <section className="rounded-2xl border border-zinc-200 bg-white p-5">
-            <h2 className="text-lg font-bold">ID pedido en el proveedor</h2>
+            <h2 className="text-lg font-bold">Datos del proveedor</h2>
             <p className="mt-1 text-sm text-zinc-500">
-              Se llena a mano después de crear el pedido en Dropi.
+              Se llenan a mano después de crear el pedido en el proveedor. Cuando
+              exista una integración real, estos mismos campos se completarán solos.
             </p>
-            <form action={updateDropiOrderId} className="mt-3 space-y-3">
+            <form action={updateProviderOrder} className="mt-3 space-y-3">
               <input type="hidden" name="id" value={order.id} />
               <input
                 type="text"
-                name="dropiOrderId"
-                defaultValue={order.dropiOrderId ?? ""}
-                placeholder="Ej. DRPI-12345"
+                name="providerName"
+                defaultValue={order.providerName ?? ""}
+                placeholder="Proveedor. Ej. Dropi"
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+              />
+              <input
+                type="text"
+                name="providerOrderId"
+                defaultValue={order.providerOrderId ?? ""}
+                placeholder="ID del pedido en el proveedor. Ej. DRPI-12345"
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+              />
+              <input
+                type="text"
+                name="providerStatus"
+                defaultValue={order.providerStatus ?? ""}
+                placeholder="Estado en el proveedor. Ej. en preparación"
                 className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
               />
               <button

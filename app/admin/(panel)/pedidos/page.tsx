@@ -9,7 +9,7 @@ import {
   STATUS_LABELS,
   shortOrderId,
 } from "@/lib/orders";
-import { purgeDemoOrders, setOrderDemo, setOrderStatus, updateDropiOrderId } from "./actions";
+import { purgeDemoOrders, setOrderDemo, setOrderStatus, updateProviderOrder } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -219,13 +219,23 @@ export default async function AdminPedidosPage({
                     .map((item) => `${item.productVariant.name} ×${item.quantity}`)
                     .join(", ")}
                 </p>
-                <form action={updateDropiOrderId} className="flex items-center gap-2">
+                <form
+                  action={updateProviderOrder}
+                  className="flex flex-col gap-2 sm:flex-row sm:items-center"
+                >
                   <input type="hidden" name="id" value={order.id} />
                   <input
                     type="text"
-                    name="dropiOrderId"
-                    defaultValue={order.dropiOrderId ?? ""}
-                    placeholder="ID pedido Dropi"
+                    name="providerName"
+                    defaultValue={order.providerName ?? ""}
+                    placeholder="Proveedor"
+                    className="w-36 rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:border-emerald-500 focus:outline-none"
+                  />
+                  <input
+                    type="text"
+                    name="providerOrderId"
+                    defaultValue={order.providerOrderId ?? ""}
+                    placeholder="ID pedido proveedor"
                     className="w-44 rounded-lg border border-zinc-300 px-2 py-1.5 text-sm focus:border-emerald-500 focus:outline-none"
                   />
                   <button

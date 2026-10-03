@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getImages } from "@/lib/products";
+import { IconCash } from "@/components/icons";
 import { CheckoutForm, type CheckoutItem } from "./checkout-form";
 
 export const dynamic = "force-dynamic";
@@ -97,13 +98,21 @@ export default async function CheckoutPage({
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
-      <h1 className="text-3xl font-bold">Finalizar pedido</h1>
-      <p className="mt-1 text-zinc-500">
-        Sin pago online: pagas en efectivo cuando recibes tu pedido.
-      </p>
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:py-10">
+      <header className="mx-auto max-w-2xl">
+        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
+          Finalizar pedido
+        </h1>
+        <p className="mt-2 flex items-start gap-1.5 text-[15px] leading-relaxed text-zinc-600">
+          <IconCash className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+          <span>
+            Sin pago online: pagas en efectivo cuando recibes tu pedido,
+            incluyendo el envío.
+          </span>
+        </p>
+      </header>
 
-      <div className="mt-8">
+      <div className="mt-7">
         <CheckoutForm
           items={items}
           sessionId={sessionId}
@@ -111,10 +120,10 @@ export default async function CheckoutPage({
         />
       </div>
 
-      <p className="mt-8 text-center text-xs text-zinc-400">
+      <p className="mt-8 text-center text-xs leading-relaxed text-zinc-400">
         Al confirmar aceptas ser contactado por WhatsApp para validar los datos
         de entrega.{" "}
-        <Link href="/productos" className="underline">
+        <Link href="/productos" className="underline hover:text-emerald-700">
           Seguir comprando
         </Link>
       </p>

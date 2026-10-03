@@ -17,16 +17,37 @@ export async function setOrderStatus(formData: FormData) {
   revalidatePath(`/admin/pedidos/${id}`);
 }
 
-export async function updateDropiOrderId(formData: FormData) {
+/**
+ * Guarda los datos del proveedor de un pedido: con qué proveedor se tramita, el
+ * número que nos da ese proveedor y el estado que nos informa. Se rellena a mano
+ * hoy; es el sitio donde luego apoyará una integración real, sin integrarla aquí.
+ *
+ * Mantiene `dropiOrderId` porque el despliegue actual de Vercel todavía lee esa
+ * columna, y deja las dos en sincronía para que nada se pierda al migrar.
+ */
+export async function updateProviderOrder(formData: FormData) {
   await assertAdmin();
 
   const id = String(formData.get("id") ?? "");
-  const dropiOrderId = String(formData.get("dropiOrderId") ?? "").trim();
   if (!id) return;
+
+  const clean = (value: FormDataEntryValue | null): string | null => {
+    const text = String(value ?? "").trim();
+    return text === "" ? null : text;
+  };
+
+  const providerOrderId = clean(formData.get("providerOrderId"));
+  const providerName = clean(formData.get("providerName"));
+  const providerStatus = clean(formData.get("providerStatus"));
 
   await prisma.order.update({
     where: { id },
-    data: { dropiOrderId: dropiOrderId === "" ? null : dropiOrderId },
+    data: {
+      providerOrderId,
+      providerName,
+      providerStatus,
+      dropiOrderId: providerOrderId,
+    },
   });
   revalidatePath("/admin/pedidos");
   revalidatePath(`/admin/pedidos/${id}`);

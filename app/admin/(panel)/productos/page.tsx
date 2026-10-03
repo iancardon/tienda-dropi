@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatCOP } from "@/lib/format";
-import { calculateMargin } from "@/lib/pricing";
-import { supplierReadiness } from "@/lib/supplier";
+import { supplierReadiness, unitMarginFor } from "@/lib/supplier";
 import { toggleProductActive, toggleVariantStock } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -42,10 +41,7 @@ export default async function AdminProductosPage() {
     (p) => supplierReadiness(p).ready
   ).length;
   const atRiskCount = products.filter((p) => {
-    const margin = calculateMargin(
-      p.basePrice,
-      p.supplierPrice + p.supplierShippingCost
-    );
+    const margin = unitMarginFor(p);
     return !p.isDemo && (margin.isLoss || margin.isLow);
   }).length;
 
@@ -89,7 +85,7 @@ export default async function AdminProductosPage() {
       <div className="mt-6 space-y-4">
         {products.map((product) => {
           const totalCost = product.supplierPrice + product.supplierShippingCost;
-          const margin = calculateMargin(product.basePrice, totalCost);
+          const margin = unitMarginFor(product);
           const readiness = supplierReadiness(product);
           const totalStock = product.variants.reduce(
             (sum, v) => sum + v.stock,

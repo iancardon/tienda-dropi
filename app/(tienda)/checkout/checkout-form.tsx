@@ -26,13 +26,13 @@ type Props = {
 };
 
 const inputClass =
-  "w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200";
+  "w-full rounded-xl border border-zinc-300 bg-white px-3.5 py-3 text-[16px] text-zinc-900 placeholder:text-zinc-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 focus:outline-none sm:text-sm";
 
-const labelClass = "block text-sm font-medium text-zinc-700";
+const labelClass = "block text-sm font-medium text-zinc-800";
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
-  return <p className="mt-1 text-xs text-red-600">{message}</p>;
+  return <p className="mt-1.5 text-xs font-medium text-red-600">{message}</p>;
 }
 
 export function CheckoutForm({ items, sessionId, editableQty }: Props) {
@@ -70,13 +70,17 @@ export function CheckoutForm({ items, sessionId, editableQty }: Props) {
         {sessionId && <input type="hidden" name="sessionId" value={sessionId} />}
 
         {state?.error && (
-          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {state.error}
+          <div
+            role="alert"
+            className="mb-5 flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm text-red-800"
+          >
+            <span className="mt-0.5 shrink-0 font-bold">!</span>
+            <span>{state.error}</span>
           </div>
         )}
 
-        <h2 className="text-xl font-bold">Datos del cliente</h2>
-        <p className="mt-1 text-sm text-zinc-500">
+        <h2 className="text-lg font-bold text-zinc-900">Datos del cliente</h2>
+        <p className="mt-1 text-sm text-zinc-600">
           No pagas nada ahora. Te contactaremos por WhatsApp para confirmar.
         </p>
 
@@ -129,9 +133,12 @@ export function CheckoutForm({ items, sessionId, editableQty }: Props) {
             </div>
           </div>
 
-          <h2 className="mt-6 text-xl font-bold">Dirección de entrega</h2>
-          <p className="mt-1 text-sm text-zinc-500">
-            Incluye barrio, casa/apartamento y una referencia cercana.
+          <h2 className="mt-7 text-lg font-bold text-zinc-900">
+            Dirección de entrega
+          </h2>
+          <p className="mt-1 text-sm text-zinc-600">
+            Incluye barrio, casa o apartamento y una referencia cercana. Entre
+            más claro, más rápido llega tu pedido.
           </p>
 
           <div className="mt-4 space-y-4">
@@ -260,50 +267,62 @@ export function CheckoutForm({ items, sessionId, editableQty }: Props) {
           <button
             type="submit"
             disabled={pending}
-            className="mt-8 w-full rounded-xl bg-emerald-600 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-zinc-300"
+            className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-4 text-base font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-zinc-300 sm:text-sm"
           >
-            {pending
-              ? "Enviando pedido..."
-              : "Confirmar pedido (pago contra entrega)"}
+            {pending ? (
+              <>
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                Enviando pedido…
+              </>
+            ) : (
+              "Confirmar pedido (pago contra entrega)"
+            )}
           </button>
+
+          <p className="mt-3 text-center text-xs leading-relaxed text-zinc-500">
+            Te escribiremos por WhatsApp para confirmar. No se cobra nada sin tu
+            confirmación.
+          </p>
         </div>
       </form>
 
       <aside className="lg:col-span-2">
-        <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-5">
-          <h2 className="text-xl font-bold">Resumen del pedido</h2>
+        <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-5 lg:sticky lg:top-24">
+          <h2 className="text-lg font-bold text-zinc-900">
+            Resumen del pedido
+          </h2>
 
           <ul className="mt-4 divide-y divide-zinc-200">
             {effectiveItems.map((it) => (
-              <li key={it.variantId} className="flex items-start gap-4 py-3">
+              <li key={it.variantId} className="flex items-start gap-3 py-3">
                 {it.productImage ? (
                   <SmartImage
                     src={it.productImage}
                     alt={it.productName}
                     width={64}
                     height={64}
-                    className="h-16 w-16 rounded-xl object-cover"
+                    className="h-14 w-14 shrink-0 rounded-xl object-cover"
                   />
                 ) : (
-                  <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-zinc-200 text-xs text-zinc-500">
-                    Sin imagen
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-zinc-200 text-[10px] text-zinc-500">
+                    Sin img
                   </div>
                 )}
-                <div className="flex-1">
+                <div className="min-w-0 flex-1">
                   <Link
                     href={`/productos/${it.productSlug}`}
-                    className="font-semibold leading-tight hover:text-emerald-600"
+                    className="text-sm leading-snug font-semibold text-zinc-900 transition hover:text-emerald-700"
                   >
                     {it.productName}
                   </Link>
-                  <p className="mt-1 text-sm text-zinc-500">
+                  <p className="mt-0.5 text-xs text-zinc-500">
                     Variante: {it.variantName}
                   </p>
-                  <p className="text-sm text-zinc-500">
+                  <p className="text-xs text-zinc-500">
                     {formatCOP(it.unitPrice)} × {it.quantity}
                   </p>
                 </div>
-                <span className="font-semibold text-zinc-900">
+                <span className="shrink-0 text-sm font-semibold text-zinc-900">
                   {formatCOP(it.unitPrice * it.quantity)}
                 </span>
               </li>
@@ -350,12 +369,13 @@ export function CheckoutForm({ items, sessionId, editableQty }: Props) {
             </div>
           </div>
 
-          <div className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
-            <strong>Pago contra entrega:</strong> pagas {formatCOP(total)} en
-            efectivo cuando recibas el pedido (incluye envío).
+          <div className="mt-4 rounded-xl bg-emerald-50 px-3.5 py-3 text-xs leading-relaxed text-emerald-800">
+            <strong className="font-semibold">Pago contra entrega:</strong>{" "}
+            pagas {formatCOP(total)} en efectivo cuando recibas el pedido, envío
+            incluido.
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2 text-xs text-zinc-500">
+          <div className="mt-4 flex flex-wrap gap-x-2 gap-y-1 text-xs text-zinc-500">
             <Link
               href="/terminos-y-condiciones"
               className="underline hover:text-emerald-600"

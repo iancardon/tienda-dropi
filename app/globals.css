@@ -3,6 +3,17 @@
 :root {
   --background: #ffffff;
   --foreground: #18181b;
+
+  /* Paleta de marca. Verde como color de acción (pago contra entrega) y
+     neutro cálido para texto y bordes. Se maintaine el verde que ya usaba
+     el panel, para que el admin y la tienda se vean de la misma familia. */
+  --brand-50: #ecfdf5;
+  --brand-100: #d1fae5;
+  --brand-200: #a7f3d0;
+  --brand-500: #10b981;
+  --brand-600: #059669;
+  --brand-700: #047857;
+  --brand-900: #064e3b;
 }
 
 @theme inline {
@@ -16,4 +27,108 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  /* Evita el scroll horizontal en móvil cuando un elemento se sale un poco. */
+  overflow-x: hidden;
+  /* Los enlaces numéricos no deben romperse ni desbordar. */
+  overflow-wrap: break-word;
+}
+
+/* Foco visible solo por teclado: no molesta al usuario de ratón pero sí
+   ayuda a quien navega con teclado o lector de pantalla. */
+:focus-visible {
+  outline: 2px solid var(--brand-600);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* --- Microinteracciones ------------------------------------------------- */
+/* Sutiles y cortas a propósito: el movimiento sirve para orientar, no para
+   lucirse. Se desactivan con prefers-reduced-motion. */
+
+@keyframes fade-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-rise {
+  animation: fade-rise 0.32s ease-out both;
+}
+
+@keyframes soft-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.animate-soft-pulse {
+  animation: soft-pulse 2.4s ease-in-out infinite;
+}
+
+/* Scroll suave para el salto a secciones (Cómo comprar, FAQ). */
+html {
+  scroll-behavior: smooth;
+  /* Compensa el header sticky al usar anclas. */
+  scroll-padding-top: 5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .animate-fade-rise,
+  .animate-soft-pulse {
+    animation: none;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Oculta la barra de desplazamiento del carrusel de categorías sin dejar de
+   permitir el scroll con el dedo o el ratón. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Rejilla de dos columnas para tarjetas de producto en pantallas muy
+   estrechas (360-390 px), donde una sola columna deja la pantalla demasiado
+   vacía y dos de 150 px se verían diminutas. */
+@media (min-width: 360px) {
+  .grid-products {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 640px) {
+  .grid-products {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-products {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .grid-products {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }

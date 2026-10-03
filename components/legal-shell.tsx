@@ -34,16 +34,16 @@ export function PendingNotice() {
   const pending = pendingLegalFields();
   if (pending.length === 0) return null;
 
-  return (
-    <div className="mt-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+return (
+    <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
       <p className="font-semibold">Documento sin completar</p>
-      <p className="mt-1">
-        Antes de publicar, estos datos deben quedar definitivos. Los que salen de
-        variables de entorno se cambian en <code className="font-mono">.env</code>; los
+      <p className="mt-1 leading-relaxed">
+        Antes de publicar, estos datos deben quedar definitivos. Los que salen
+        de variables de entorno se cambian en <code className="font-mono">.env</code>; los
         marcados como &quot;se edita en la página&quot; se cambian en el texto del
         documento.
       </p>
-      <ul className="mt-3 space-y-1">
+      <ul className="mt-3 space-y-1.5">
         {pending.map((field) => (
           <li key={field.key} className="flex flex-wrap items-center gap-2">
             <span>{field.label}</span>
@@ -72,39 +72,52 @@ export function LegalShell({
   children: ReactNode;
 }) {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-12">
-      <h1 className="text-3xl font-bold">{title}</h1>
-      <p className="mt-2 text-zinc-500">{intro}</p>
-      <p className="mt-1 text-sm text-zinc-400">
-        Última actualización: {legalUpdatedAt()}
-      </p>
+    <div className="mx-auto max-w-3xl px-4 py-8 sm:py-12">
+      <header>
+        <h1 className="text-2xl font-bold tracking-tight text-zinc-900 sm:text-3xl">
+          {title}
+        </h1>
+        <p className="mt-2 text-[15px] leading-relaxed text-zinc-600">
+          {intro}
+        </p>
+        <p className="mt-1.5 text-xs text-zinc-400">
+          Última actualización: {legalUpdatedAt()}
+        </p>
+      </header>
 
       <PendingNotice />
 
-      <div className="mt-8 space-y-6 text-zinc-700 leading-relaxed">
+      {/* Los documentos largos se leen mucho mejor con interlineado amplio y
+          títulos visibles: quien entra aquí busca un apartado concreto, no
+          quiere el pasar de largo. */}
+      <div className="mt-8 space-y-7 text-[15px] leading-relaxed text-zinc-700 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-zinc-900 [&_h3]:font-semibold [&_h3]:text-zinc-900 [&_li]:mt-1.5 [&_ol]:list-decimal [&_ol]:space-y-1.5 [&_ol]:pl-5 [&_strong]:font-semibold [&_strong]:text-zinc-900 [&_ul]:list-disc [&_ul]:space-y-1.5 [&_ul]:pl-5">
         {children}
       </div>
 
-      <div className="mt-10 space-y-4 border-t border-zinc-200 pt-6 text-sm">
-        <nav className="flex flex-wrap gap-x-4 gap-y-2 text-zinc-500">
-          <Link href="/politica-de-privacidad" className="hover:text-emerald-600">
-            Política de privacidad
-          </Link>
-          <Link href="/terminos-y-condiciones" className="hover:text-emerald-600">
-            Términos y condiciones
-          </Link>
-          <Link href="/cambios-y-devoluciones" className="hover:text-emerald-600">
-            Cambios y devoluciones
-          </Link>
-          <Link href="/envios" className="hover:text-emerald-600">
-            Envíos
-          </Link>
-          <Link href="/contacto" className="hover:text-emerald-600">
-            Contacto
-          </Link>
+      <div className="mt-12 rounded-2xl border border-zinc-200 bg-zinc-50 p-5 text-sm">
+        <p className="font-semibold text-zinc-900">Otros documentos</p>
+        <nav className="mt-3 flex flex-wrap gap-2">
+          {[
+            { href: "/politica-de-privacidad", label: "Política de privacidad" },
+            { href: "/terminos-y-condiciones", label: "Términos y condiciones" },
+            { href: "/cambios-y-devoluciones", label: "Cambios y devoluciones" },
+            { href: "/envios", label: "Envíos" },
+            { href: "/contacto", label: "Contacto" },
+          ].map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 font-medium text-zinc-700 transition hover:border-emerald-400 hover:text-emerald-700"
+            >
+              {item.label}
+            </Link>
+          ))}
         </nav>
-        <p>
-          <Link href="/" className="font-medium text-emerald-600 hover:text-emerald-700">
+        <p className="mt-4">
+          <Link
+            href="/"
+            className="font-medium text-emerald-700 hover:text-emerald-800"
+          >
             ← Volver a {STORE_CONFIG.name}
           </Link>
         </p>

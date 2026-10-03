@@ -36,6 +36,9 @@ model Product {
   updatedAt         DateTime         @updatedAt
   variants          ProductVariant[]
 
+  // Permite encontrar rápido un producto por su ID en el proveedor, que es como
+  // se reconoce un producto real al reimportar el catálogo.
+  @@index([supplier, supplierProductId])
   @@map("products")
 }
 
@@ -102,11 +105,20 @@ model Order {
   total              Float
   shippingCost       Float        @default(0)
   subtotal           Float
-  dropiOrderId       String?      // se llena manualmente desde el admin
+  // ===== Datos del proveedor (se llenan a mano o con la futura integración) =====
+  // `dropiOrderId` se conserva porque el despliegue actual de Vercel todavía lo
+  // lee. Cuando ese despliegue se reemplace, esta columna se puede eliminar en
+  // otra migración; mientras tanto el panel usa `providerOrderId`.
+  dropiOrderId       String?      // legado: ID de pedido en Dropi (columna antigua)
+  providerOrderId    String?      // ID del pedido en el proveedor, sea cual sea
+  providerName       String?      // con qué proveedor se gestionó el pedido
+  providerStatus     String?      // estado informado por el proveedor
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
   items              OrderItem[]
 
+  @@index([isDemo])
+  @@index([providerName])
   @@map("orders")
 }
 

@@ -5,9 +5,25 @@
  * necesita un producto para poder venderse y despacharse con el proveedor.
  * Cuando exista la integración, este módulo es el punto de apoyo.
  */
-import { calculateMargin } from "./pricing";
+import { calculateMargin, type UnitMargin } from "./pricing";
 
 export const SUPPLIER_NAME = "Dropi";
+
+/**
+ * Margen de un producto descuuyendo el costo del proveedor y lo que el
+ * proveedor cobra por enviarlo. Es la misma cuenta en todo el panel, para que
+ * el número que ves en la lista sea el mismo que ves al editar.
+ */
+export function unitMarginFor(product: {
+  basePrice: number;
+  supplierPrice: number;
+  supplierShippingCost?: number | null;
+}): UnitMargin {
+  return calculateMargin(
+    product.basePrice,
+    product.supplierPrice + (product.supplierShippingCost ?? 0)
+  );
+}
 
 export type SupplierReadiness = {
   ready: boolean;
@@ -34,10 +50,7 @@ export function supplierReadiness(
 ): SupplierReadiness {
   const supplier = supplierNameOf(product);
   const missing: string[] = [];
-  const margin = calculateMargin(
-    product.basePrice,
-    product.supplierPrice + (product.supplierShippingCost ?? 0)
-  );
+  const margin = unitMarginFor(product);
 
   if (product.isDemo) {
     missing.push("Es un producto DEMO (no se publica ni se despacha)");

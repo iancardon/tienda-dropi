@@ -73,7 +73,8 @@ type OrderForMessage = {
   customerCity: string;
   customerDepartment: string;
   customerReference: string | null;
-  dropiOrderId: string | null;
+  providerOrderId: string | null;
+  providerName: string | null;
   createdAt: Date;
   items: {
     quantity: number;
@@ -139,7 +140,7 @@ export function buildCustomerMessage(
     "",
     `Entregar en: ${address}`,
     order.customerReference ? `Referencia: ${order.customerReference}` : "",
-    order.dropiOrderId ? `Pedido en el proveedor: ${order.dropiOrderId}` : "",
+    order.providerOrderId ? `Pedido en ${order.providerName ?? "el proveedor"}: ${order.providerOrderId}` : "",
     "",
     "¿Confirmas que recibes este pedido? Responde este mensaje y te confirmamos.",
   ]

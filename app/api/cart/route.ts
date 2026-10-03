@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
       include: { product: true },
     });
 
-    if (!variant || !variant.product.active) {
+    if (!variant || !variant.product.active || variant.product.isDemo) {
       return NextResponse.json({ error: "Producto no disponible" }, { status: 404 });
     }
 

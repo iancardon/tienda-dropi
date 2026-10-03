@@ -435,10 +435,33 @@ async function main() {
 
   await prisma.$transaction(async (tx) => {
     for (const draft of drafts.values()) {
-      const existing = await tx.product.findUnique({
-        where: { slug: draft.slug },
-        include: { variants: { select: { id: true, sku: true } } },
-      });
+      // Un producto real se reconoce por su ID en el proveedor, que no cambia
+      // aunque le renombres el título. El slug es el segundo criterio: si el
+      // nombre cambió y el ID es nuevo, el slug tampoco coincidirá y se creará
+      // un producto nuevo en vez de pisar el anterior.
+      const existing = draft.supplierProductId
+        ? await tx.product.findFirst({
+            where: { supplierProductId: draft.supplierProductId },
+            include: { variants: { select: { id: true, sku: true } } },
+          })
+        : await tx.product.findUnique({
+            where: { slug: draft.slug },
+            include: { variants: { select: { id: true, sku: true } } },
+          });
+
+      // Si el mismo ID de proveedor ya corresponde a otro producto distinto,
+      // avisamos y no tocamos nada: es mejor quejar que duplicar o pisar.
+      if (
+        existing &&
+        draft.supplierProductId &&
+        existing.slug !== draft.slug &&
+        !drafts.get(existing.slug)
+      ) {
+        console.log(
+          `\n  ! El ID de proveedor "${draft.supplierProductId}" ya está en el producto "${existing.name}" (${existing.slug}).` +
+            `\n    Se actualiza ese producto en vez de crear "${draft.name}". Revisa el CSV si no es lo que esperabas.`
+        );
+      }
 
       const data = {
         name: draft.name,
@@ -455,7 +478,8 @@ async function main() {
         images: draft.images,
         featured: draft.featured,
         active: draft.active,
-        // Si el producto existía como DEMO, al importar el catálogo real deja de serlo.
+        // El catálogo real es lo que se publica, así que un producto que venía como
+        // DEMO deja de serlo al importar sus datos reales.
         isDemo: false,
       };
 
@@ -514,7 +538,8 @@ async function main() {
     if (deactivateMissing) {
       const slugs = [...drafts.keys()];
       const res = await tx.product.updateMany({
-        where: { slug: { notIn: slugs }, active: true },
+        // `isDemo: false` en el filtro: los productos de prueba no se desactivan.
+        where: { slug: { notIn: slugs }, active: true, isDemo: false },
         data: { active: false },
       });
       console.log(`\nProductos desactivados fuera del CSV: ${res.count}`);
